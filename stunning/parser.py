@@ -3,7 +3,7 @@ import re
 import sys
 
 
-from stunning.lex import lexer
+from stunning import lexer
 from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
 
 ONE_OR_MORE = "+"
