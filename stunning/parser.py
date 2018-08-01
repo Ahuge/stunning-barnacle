@@ -281,8 +281,7 @@ def parse(text):
     for token in main_grammar:
         result = Token._get_tok(token.resolve(tokens))
         results.append(result)
-    tree = None
-    print(tree)
+    return Token._get_tok(results)
 
 
 if __name__ == "__main__":
