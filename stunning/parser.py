@@ -3,10 +3,8 @@ import re
 import sys
 
 
-from stunning
-
-from parser_lib.parse_lexer import TOKEN_NAMES, imp_lex
-from parser_lib.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
+from stunning.lex import lexer
+from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
 
 ONE_OR_MORE = "+"
 OR = "|"
@@ -217,7 +215,7 @@ def _resolve_grammar(token_names, parts):
             elif part == ONE_OR_MORE:
                 created_token = OneOrMoreToken(name=part)
             else:
-                created_token = Token.factory(name=part, values=[TOKEN_NAMES.get(part)])
+                created_token = Token.factory(name=part, values=[lexer.TOKEN_NAMES.get(part)])
         created_tokens.append(created_token)
     return _merge_complex_tokens(created_tokens)
 
@@ -274,7 +272,7 @@ def _build_grammar():
 
 
 def parse(text):
-    tokens = list(filter(lambda t: t[0] != "WHITESPACE", imp_lex(text)))
+    tokens = list(filter(lambda t: t[0] != "WHITESPACE", lexer.lex(text)))
 
     grammar = _build_grammar()
 
@@ -314,7 +312,6 @@ Grade {
  xpos -150
  ypos -513
 }"""
-# tokens = imp_lex(t)
 try:
     parse(t)
 finally:
