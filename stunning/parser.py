@@ -285,12 +285,8 @@ def parse(text):
     print(tree)
 
 
-# grammar = _build_grammar()
-# from pprint import pprint
-# pprint(grammar)
-
-
-t = """ColorCorrect {
+if __name__ == "__main__":
+    t = """ColorCorrect {
  name ColorCorrect1
  selected true
  xpos -150
@@ -312,11 +308,12 @@ Grade {
  xpos -150
  ypos -513
 }"""
-try:
-    parse(t)
-finally:
-    print("")
-    print("")
-    print(_PROCESSED)
-    print("")
-    print("")
+    try:
+        parse(t)
+    finally:
+        print("")
+        print("")
+        print("Processed the following text: %s" %_PROCESSED)
+        print("")
+        print("")
+
