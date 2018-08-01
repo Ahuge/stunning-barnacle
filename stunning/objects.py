@@ -22,6 +22,8 @@ class KnobObject(ParseObject):
 
 
 class TCLObject(ParseObject):
+    COMMAND = None
+
     def __init__(self, command, *args):
         super(TCLObject, self).__init__()
         self.command = command
@@ -29,6 +31,8 @@ class TCLObject(ParseObject):
 
 
 class SetTCLObject(TCLObject):
+    COMMAND = "set"
+
     def __init__(self, command, *args):
         super(SetTCLObject, self).__init__(command, *args)
         # self.args = <var> [ stack <pos> ]
@@ -37,6 +41,8 @@ class SetTCLObject(TCLObject):
 
 
 class PushTCLObject(TCLObject):
+    COMMAND = "push"
+
     def __init__(self, command, *args):
         super(PushTCLObject, self).__init__(command, *args)
         self.varname = self.args[-1]
