@@ -32,7 +32,7 @@ def __lex(characters):
                     tokens.append(token)
                 break
         if not match:
-            sys.stderr.write('Illegal character: %s\\n' % characters[pos])
+            sys.stderr.write('Illegal character: %s at pos: %d\\n' % (characters[pos], pos))
             sys.exit(1)
         else:
             pos = match.end(0)
