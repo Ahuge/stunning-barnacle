@@ -1,9 +1,13 @@
+import contextlib
 import os
 import re
 import sys
+import traceback
 
 
 from stunning import lexer
+from stunning import _types
+from stunning.exceptions import ParsingError, ResolvingError
 from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
 
 ONE_OR_MORE = "+"
@@ -15,6 +19,7 @@ _PROCESSED = ""
 class Token(object):
     _SUB_TYPES = {}
     _TokenClasses = {}
+    exc_stack = []
 
     def __init__(self, name, values):
         super(Token, self).__init__()
@@ -56,17 +61,20 @@ class Token(object):
             return self._resolve_regex(tokstream, value)
 
     def resolve(self, tokstream):
-        backup_tokstream = tokstream[:]
-
         for each_option in self.values:
-            try:
+            Token.exc_stack.clear()
+
+            with self.rewindable(tokstream) as rewound:
                 result = self._resolve(tokstream, each_option)
                 if result:
                     self.result = result
                     return result
-            except:
-                tokstream = backup_tokstream
-        raise ValueError("Could not resolve %s token" % self.name)
+            if rewound:
+                continue
+        raise ResolvingError(
+            "Could not resolve %s token.\nToken stream contained: %s"
+            % (self.name, tokstream)
+        )
 
     def _resolve_list(self, tokstream, list_value):
         values = []
@@ -77,19 +85,51 @@ class Token(object):
             values.append(result)
         return values
 
+    @contextlib.contextmanager
+    def rewindable(self, stream):
+        """
+        rewindable is a helpful contextmanager that will attempt to execute it's body and
+            on exception will rewind the tokenstream back to it's previous state.
+        It does this by reverse inserting back into the container.
+        This preserves references to mutable structures but sill allows us to undo
+            tokstream consuming actions.
+
+        rewindable will also insert exceptions into the exc_stack on the Token class obj.
+        This can be used at the end of parsing to see the chain of events that caused an
+            incorrect parsing.
+
+        :param stream: Mutable iterable container of tokens.
+        :type stream: types.Iterable
+        :yields: A mutable sentinel value that you can test the "truthy-ness" of to detect
+            if the previous operation failed. If the sentinel is "truthy", it will contain
+            one or more exception tuples in it that you are able to do what you want with.
+        :ytype: types.Iterable
+        """
+        backup = stream[:]
+        exception_store = []
+        try:
+            yield exception_store
+        except Exception as err:
+            index = len(stream) + 1
+            while index <= len(backup):
+                stream.insert(0, backup[-index])
+                index += 1
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            Token.exc_stack.insert(0, (exc_type, exc_obj, exc_tb))
+            exception_store.append(err)
+
     def _resolve_token(self, tokstream, token_value):
         results = []
         if token_value.greedy:
             while True:
-                try:
+                with self.rewindable(tokstream) as rewound:
                     r = token_value.resolve(tokstream)
                     if r:
                         results.append(r)
                     else:
                         break
-                except:
-                    # import traceback
-                    # traceback.print_exc()
+                if rewound:  # An exception was thrown and we should stop.
                     break
         else:
             results = [token_value.resolve(tokstream)]
@@ -98,10 +138,8 @@ class Token(object):
         return False
 
     def _resolve_regex(self, tokstream, regex_value):
-        # '[A-Za-z][A-Za-z0-9_]*'
-        # tok from tokstream = (NAME, text, TYPE)
-        try:
-            tok_name, tok_text, tok_type = tokstream[0]
+        with self.rewindable(tokstream) as rewound:
+            tok_name, tok_text, tok_type, tok_pos = tokstream[0]
             if re.match(regex_value, tok_text):
                 t = tokstream.pop(0)
                 global _PROCESSED
@@ -109,23 +147,13 @@ class Token(object):
                 _PROCESSED += t[1]
                 sys.stdout.write(" %s" % t[1])
                 return t
-        except:
-            raise ValueError("Parsing Error!\nExpected %s got %s" % (regex_value, tokstream[0][:-1]))
+        if rewound:
+            raise ParsingError("Parsing Error!\nExpected %s got %s" % (regex_value, tokstream[0][:-1]))
 
 
 class OrToken(Token):
     def __init__(self, name):
         super(OrToken, self).__init__(name, [None])
-
-    def resolve(self, tokstream):
-        for each_option in self.values:
-            try:
-                result = self._resolve(tokstream, each_option)
-                if result:
-                    return result
-            except ValueError:
-                continue
-        raise ValueError("Could not resolve %s token" % self.name)
 
 
 class OneOrMoreToken(Token):
@@ -272,7 +300,7 @@ def _build_grammar():
 
 
 def parse(text):
-    tokens = list(filter(lambda t: t[0] != "WHITESPACE", lexer.lex(text)))
+    tokens = list(filter(lambda t: t[2] != _types.IGNORE, lexer.lex(text)))
 
     grammar = _build_grammar()
 
@@ -281,6 +309,14 @@ def parse(text):
     for token in main_grammar:
         result = Token._get_tok(token.resolve(tokens))
         results.append(result)
+    if len(tokens):
+        for exc_t, exc_o, exc_tb in Token.exc_stack:
+            traceback.print_exception(exc_t, exc_o, exc_tb)
+        raise ParsingError(
+            "The stunning library was unable to consume the entire text passed to it.\n"
+            "This is probably due to a syntax error in the text.\n"
+            "Resulting token stream contained %s..." % tokens[:3]
+        )
     return Token._get_tok(results)
 
 
