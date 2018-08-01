@@ -2,10 +2,13 @@ import os
 import re
 import sys
 
+from stunning.exceptions import LexerError
+
 __all__ = ("TOKEN_NAMES", "lex")
 
 TOKENS_FP = "tokens.tok"
 TOKEN_NAMES = {}
+__tokens = None
 
 
 def _read_tokens():
@@ -16,25 +19,35 @@ def _read_tokens():
                 yield line.split("\t")[:3]
 
 
+def _tokens():
+    global __tokens
+    if not __tokens:
+        __tokens = list(_read_tokens())
+    return __tokens
+
+
 def __lex(characters):
     pos = 0
     tokens = []
     while pos < len(characters):
         match = None
-        for name, pattern, tag in _read_tokens():
+        match_name, match_tag = None, None
+        for name, pattern, tag in _tokens():
             TOKEN_NAMES[name] = pattern
             regex = re.compile(pattern)
             match = regex.match(characters, pos)
             if match:
-                text = match.group(0)
-                if tag:
-                    token = (name, text, tag)
-                    tokens.append(token)
+                match_name = name
+                match_tag = tag
                 break
         if not match:
-            sys.stderr.write('Illegal character: %s at pos: %d\\n' % (characters[pos], pos))
-            sys.exit(1)
+            _msg = "Illegal character: %s at pos: %d" % (characters[pos], pos)
+            sys.stderr.write(_msg + "\n")
+            raise LexerError(_msg)
         else:
+            text = match.group(0)
+            token = (match_name, text, match_tag, (pos, match.end(0)))
+            tokens.append(token)
             pos = match.end(0)
     return tokens
 
