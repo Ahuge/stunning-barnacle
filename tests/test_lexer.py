@@ -1,6 +1,6 @@
 import unittest
 
-import lexer
+from stunning import lexer
 
 
 test_simple_with_merge_text = """set cut_paste_input [stack 0]
@@ -57,11 +57,10 @@ Merge2 {
 }"""
 
 
-
 class LexerTestCase(unittest.TestCase):
     def test_simple_with_merge(self):
         tokens = lexer.lex(test_simple_with_merge_text)
-        self.assertEqual(len(tokens), 42)  # Don't know how many tokens right now.
+        self.assertEqual(len(tokens), 212)
 
 
 if __name__ == "__main__":
