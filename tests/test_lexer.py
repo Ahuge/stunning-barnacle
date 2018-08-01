@@ -2,6 +2,8 @@ import unittest
 
 from stunning import lexer
 
+from tests.test_utils import BaseTimingTest
+
 
 test_simple_with_merge_text = """set cut_paste_input [stack 0]
 version 11.1 v4
@@ -57,7 +59,8 @@ Merge2 {
 }"""
 
 
-class LexerTestCase(unittest.TestCase):
+class LexerTestCase(BaseTimingTest):
+    @BaseTimingTest.timing
     def test_simple_with_merge(self):
         tokens = lexer.lex(test_simple_with_merge_text)
         self.assertEqual(len(tokens), 212)
