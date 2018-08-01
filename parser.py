@@ -56,11 +56,16 @@ class Token(object):
             return self._resolve_regex(tokstream, value)
 
     def resolve(self, tokstream):
+        backup_tokstream = tokstream[:]
+
         for each_option in self.values:
-            result = self._resolve(tokstream, each_option)
-            if result:
-                self.result = result
-                return result
+            try:
+                result = self._resolve(tokstream, each_option)
+                if result:
+                    self.result = result
+                    return result
+            except:
+                tokstream = backup_tokstream
         raise ValueError("Could not resolve %s token" % self.name)
 
     def _resolve_list(self, tokstream, list_value):
@@ -138,12 +143,18 @@ class NodeToken(Token):
         tcl_node = None
         if self.result:
             tcl_code = self._get_tok(self.result.pop(0))
-            if self._get_tok(tcl_code[0])[1] == "set":
-                args = [self._get_tok(arg)[1] for arg in tcl_code[1:]]
-                tcl_node = SetTCLObject(
-                    self._get_tok(tcl_code[0])[1],
-                    *args
-                )
+            tcl_klass = None
+
+            if self._get_tok(tcl_code[0])[1] == SetTCLObject.COMMAND:
+                tcl_klass = SetTCLObject
+            elif self._get_tok(tcl_code[0])[1] == PushTCLObject.COMMAND:
+                tcl_klass = PushTCLObject
+
+            args = [self._get_tok(arg)[1] for arg in tcl_code[1:]]
+            tcl_node = tcl_klass(
+                self._get_tok(tcl_code[0])[1],
+                *args
+            )
         knobs = self._get_tok(knobs_list)
         return NodeObject(
             self._get_tok(name_tok)[1],
