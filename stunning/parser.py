@@ -8,7 +8,7 @@ import traceback
 from stunning import lexer
 from stunning import _types
 from stunning.exceptions import ParsingError, ResolvingError
-from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
+from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject, MultiValueKnobObject
 
 ONE_OR_MORE = "+"
 OR = "|"
@@ -19,6 +19,8 @@ _PROCESSED = ""
 class Token(object):
     _SUB_TYPES = {}
     _TokenClasses = {}
+    TBOOLS = ["true", "True"]
+    BOOLS = ["false", "False"] + TBOOLS
     exc_stack = []
 
     def __init__(self, name, values):
@@ -46,8 +48,26 @@ class Token(object):
             if name in cls._TokenClasses:
                 klass = cls._TokenClasses[name]
             _t = klass(name, values)
-            cls._SUB_TYPES[name] = _t
         return _t
+
+    def _cast(self, lex_token):
+        if lex_token.name == "FLOAT":
+            value = float(lex_token.value)
+        elif lex_token.name == "INT":
+            value = int(lex_token.value)
+        elif lex_token.name == "WORD" and lex_token.value in self.BOOLS:
+            if lex_token.value in self.TBOOLS:
+                value = True
+            else:
+                value = False
+        else:
+            return lex_token
+        return lex_token.__class__(
+            lex_token.name,
+            value,
+            lex_token.tag,
+            lex_token.position
+        )
 
     def __repr__(self):
         return "<Token({name}){greed}>".format(name=self.name, greed=" [Greedy]" if self.greedy else "")
@@ -145,10 +165,15 @@ class Token(object):
                 global _PROCESSED
                 _PROCESSED += " "
                 _PROCESSED += t[1]
-                sys.stdout.write(" %s" % t[1])
+                sys.stdout.write(" %s" % t.value)
                 return t
         if rewound:
             raise ParsingError("Parsing Error!\nExpected %s got %s" % (regex_value, tokstream[0][:-1]))
+
+
+class LiteralToken(Token):
+    def __init__(self, value):
+        super(LiteralToken, self).__init__(name="LiteralToken", values=[value])
 
 
 class OrToken(Token):
@@ -173,19 +198,19 @@ class NodeToken(Token):
             tcl_code = self._get_tok(self.result.pop(0))
             tcl_klass = None
 
-            if self._get_tok(tcl_code[0])[1] == SetTCLObject.COMMAND:
+            if self._get_tok(tcl_code[0]).value == SetTCLObject.COMMAND:
                 tcl_klass = SetTCLObject
-            elif self._get_tok(tcl_code[0])[1] == PushTCLObject.COMMAND:
+            elif self._get_tok(tcl_code[0]).value == PushTCLObject.COMMAND:
                 tcl_klass = PushTCLObject
 
-            args = [self._get_tok(arg)[1] for arg in tcl_code[1:]]
+            args = [self._get_tok(arg).value for arg in tcl_code[1:]]
             tcl_node = tcl_klass(
-                self._get_tok(tcl_code[0])[1],
+                self._get_tok(tcl_code[0]).value,
                 *args
             )
         knobs = self._get_tok(knobs_list)
         return NodeObject(
-            self._get_tok(name_tok)[1],
+            self._get_tok(name_tok).value,
             tcl_node,
             *knobs
         )
@@ -196,7 +221,16 @@ class KnobToken(Token):
         result = super(KnobToken, self).resolve(tokstream)
         key = self._get_tok(result.pop(0))
         value = self._get_tok(result.pop(0))
-        return KnobObject(name=key[1], value=value[1])
+        if isinstance(value, list):
+            values = []
+            for v in value[1]:
+                tok = self._get_tok(v)
+                tok = self._cast(tok)
+                values.append(tok.value)
+            return MultiValueKnobObject(name=key.value, values=values)
+
+        value = self._cast(value)
+        return KnobObject(name=key.value, value=value.value)
 
 
 Token._TokenClasses["node"] = NodeToken
@@ -242,6 +276,8 @@ def _resolve_grammar(token_names, parts):
                 created_token = OrToken(name=part)
             elif part == ONE_OR_MORE:
                 created_token = OneOrMoreToken(name=part)
+            elif part[0] in ["\"", "\'"] and part[-1] in ["\"", "\'"]:
+                created_token = LiteralToken(value=part)
             else:
                 created_token = Token.factory(name=part, values=[lexer.TOKEN_NAMES.get(part)])
         created_tokens.append(created_token)
@@ -300,7 +336,7 @@ def _build_grammar():
 
 
 def parse(text):
-    tokens = list(filter(lambda t: t[2] != _types.IGNORE, lexer.lex(text)))
+    tokens = list(filter(lambda t: t.tag != _types.IGNORE, lexer.lex(text)))
 
     grammar = _build_grammar()
 
