@@ -70,6 +70,9 @@ class ParserTestCase(BaseTimingTest):
         self.assertEqual(nodes[0].Class, "ColorCorrect")
         self.assertEqual(nodes[1].Class, "Blur")
         self.assertEqual(nodes[2].Class, "Grade")
+        self.assertEqual(nodes[2].knobs["white_panelDropped"], True)
+        self.assertEqual(nodes[2].knobs["white"].r, 1)
+        self.assertEqual(nodes[2].knobs["white"], (1, 0.808261, 0.460907, 1))
 
 
 if __name__ == "__main__":
