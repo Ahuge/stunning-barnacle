@@ -1,3 +1,4 @@
+import collections
 import os
 import re
 import sys
@@ -29,6 +30,7 @@ def _tokens():
 def __lex(characters):
     pos = 0
     tokens = []
+    lex_token = collections.namedtuple("LexToken", ["name", "value", "tag", "position"])
     while pos < len(characters):
         match = None
         match_name, match_tag = None, None
@@ -46,7 +48,7 @@ def __lex(characters):
             raise LexerError(_msg)
         else:
             text = match.group(0)
-            token = (match_name, text, match_tag, (pos, match.end(0)))
+            token = lex_token(match_name, text, match_tag, (pos, match.end(0)))
             tokens.append(token)
             pos = match.end(0)
     return tokens
