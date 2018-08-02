@@ -15,6 +15,11 @@ knoblist: knob+
 
 knob: WORD value
 
-value: single_value
+value: animated_value|multi_value|single_value
 
 single_value: WORD|FLOAT|INT
+
+multi_value: OPEN_BRACE single_value+ CLOSE_BRACE
+
+animated_value: OPEN_BRACE OPEN_BRACE "curve" _animated_value+ CLOSE_BRACE CLOSE_BRACE
+_animated_value: WORD FLOAT|INT
