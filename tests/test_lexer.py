@@ -63,7 +63,7 @@ class LexerTestCase(BaseTimingTest):
     @BaseTimingTest.timing
     def test_simple_with_merge(self):
         tokens = lexer.lex(test_simple_with_merge_text)
-        self.assertEqual(len(tokens), 212)
+        self.assertEqual(len(tokens), 263)
 
 
 if __name__ == "__main__":
