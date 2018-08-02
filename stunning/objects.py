@@ -1,3 +1,6 @@
+import collections
+
+
 class ParseObject(object):
     pass
 
@@ -19,6 +22,33 @@ class KnobObject(ParseObject):
         super(KnobObject, self).__init__()
         self.name = name
         self.value = value
+
+
+class MultiValueKnobObject(KnobObject):
+    _labels = ["r", "g", "b", "a"]
+
+    def __init__(self, name, values):
+        labels = self._labels[:]
+        count = 1
+        while len(labels) < len(values):
+            # Make labels longer than values:
+            #   ["r", "g", "b", "a", "r1", "g1", "b1", "a1"]
+            #   [ 1,   2,   3,   4,   5]
+            labels.extend(
+                ["%s%d" % (label, count) for label in self._labels]
+            )
+            count += 1
+
+        value_names = collections.namedtuple("MultiValueKnob", labels)
+        while len(values) < len(labels):
+            # Pad out our values with None to make them the same length as labels:
+            #   ["r", "g", "b", "a", "r1", "g1", "b1", "a1"]
+            #   [ 1,   2,   3,   4,   5,   None, None, None]
+            values.append(None)
+
+        _values = value_names(*values)
+        super(MultiValueKnobObject, self).__init__(name=name, value=_values)
+        self.values = self.value
 
 
 class TCLObject(ParseObject):
