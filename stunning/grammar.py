@@ -2,7 +2,7 @@ import os
 
 from stunning.lexer import TOKEN_NAMES
 from stunning.token import Token, OrToken, OneOrMoreToken, LiteralToken
-from stunning.constants import ONE_OR_MORE, OR
+from stunning.constants import ONE_OR_MORE, OR, GRAMMAR_PLUGIN_ENV_KEY
 
 
 def _merge_complex_tokens(tokens):
@@ -52,14 +52,25 @@ def _resolve_grammar(token_names, parts):
     return _merge_complex_tokens(created_tokens)
 
 
-def build_grammar():
-    token_names = {}
-    with open(os.path.join(os.path.dirname(__file__), "grammar.bnf"), "r") as fh:
-        data = fh.readlines()
+def _load_grammar():
+    paths = [os.path.join(os.path.dirname(__file__), "grammar.bnf")]
+    paths += os.environ.get(GRAMMAR_PLUGIN_ENV_KEY).split(os.pathsep)
 
+    grammar = {}
+    for path in paths:
+        with open(path, "r") as fh:
+            data = fh.readlines()
+        _grammar = _build_grammar(data)
+        if _grammar:
+            grammar.update(_grammar)
+    return grammar
+
+
+def _build_grammar(grammar_lines):
+    token_names = {}
     _TOK = "::= "
 
-    for line in data:
+    for line in grammar_lines:
         line = line.strip().rstrip("\n").split("//")[0]
         if not line:
             continue
@@ -90,6 +101,11 @@ def build_grammar():
                 expr_parts.pop()
 
         token_names[name].append(expr_parts)
+    return token_names
+
+
+def build_grammar():
+    token_names = _load_grammar()
 
     resolved_tokens = {}
     for token_name in token_names:
