@@ -1,4 +1,4 @@
-roto_value::= toolbox_value|curves_value
+value::= animated_value|multi_value|single_value|toolbox_value|curves_value
 
 // General Utility
 packed_color::= "x" hex hex hex hex hex hex hex hex
