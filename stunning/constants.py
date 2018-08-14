@@ -1,3 +1,4 @@
+# For tokens
 ONE_OR_MORE = "+"
 OR = "|"
 
@@ -14,3 +15,8 @@ INT = "INT"
 
 # Id is a flag applied on word tokens.
 ID = "ID"
+
+# Environment key to provide extra grammar files to parse.
+#       Separated with os.pathsep.
+#       Full paths are expected.
+GRAMMAR_PLUGIN_ENV_KEY = "STUNNING_BNF_GRAMMAR_FILES"
