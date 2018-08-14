@@ -289,10 +289,10 @@ def _build_grammar():
     with open(os.path.join(os.path.dirname(__file__), "grammar.bnf"), "r") as fh:
         data = fh.readlines()
 
-    _TOK = ": "
+    _TOK = "::= "
 
     for line in data:
-        line = line.strip().rstrip("\n")
+        line = line.strip().rstrip("\n").split("//")[0]
         if not line:
             continue
         name = line.split(_TOK)[0]

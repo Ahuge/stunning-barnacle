@@ -1,25 +1,25 @@
-main: nodelist
+main::= nodelist
 
-nodelist: node+
+nodelist::= node+
 
-node: WORD OPEN_BRACE knoblist CLOSE_BRACE tcl_expression
-node: WORD OPEN_BRACE knoblist CLOSE_BRACE
+node::= WORD OPEN_BRACE knoblist CLOSE_BRACE tcl_expression
+node::= WORD OPEN_BRACE knoblist CLOSE_BRACE
 
-tcl_expression: tcl_set_expr|tcl_push_expr
+tcl_expression::= tcl_set_expr|tcl_push_expr
 
-tcl_set_expr: TCL_SET WORD OPEN_BRACKET WORD INT CLOSE_BRACKET
+tcl_set_expr::= TCL_SET WORD OPEN_BRACKET WORD INT CLOSE_BRACKET
 
-tcl_push_expr: TCL_PUSH TCL_VAR WORD
+tcl_push_expr::= TCL_PUSH TCL_VAR WORD
 
-knoblist: knob+
+knoblist::= knob+
 
-knob: WORD value
+knob::= WORD value
 
-value: animated_value|multi_value|single_value
+value::= animated_value|multi_value|single_value
 
-single_value: WORD|FLOAT|INT
+single_value::= WORD|FLOAT|INT
 
-multi_value: OPEN_BRACE single_value+ CLOSE_BRACE
+multi_value::= OPEN_BRACE single_value+ CLOSE_BRACE
 
-animated_value: OPEN_BRACE OPEN_BRACE "curve" _animated_value+ CLOSE_BRACE CLOSE_BRACE
-_animated_value: WORD FLOAT|INT
+animated_value::= OPEN_BRACE OPEN_BRACE "curve" priv_animated_value+ CLOSE_BRACE CLOSE_BRACE
+priv_animated_value::= WORD FLOAT|INT
