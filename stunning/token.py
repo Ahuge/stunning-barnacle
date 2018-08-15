@@ -4,6 +4,8 @@ import sys
 
 from stunning.exceptions import ParsingError, ResolvingError
 
+_PROCESSED = ""
+
 
 class Token(object):
     _SUB_TYPES = {}
