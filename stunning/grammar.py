@@ -54,7 +54,8 @@ def _resolve_grammar(token_names, parts):
 
 def _load_grammar():
     paths = [os.path.join(os.path.dirname(__file__), "grammar.bnf")]
-    paths += os.environ.get(GRAMMAR_PLUGIN_ENV_KEY).split(os.pathsep)
+    plugin_paths = os.environ.get(GRAMMAR_PLUGIN_ENV_KEY, "").split(os.pathsep)
+    paths += filter(bool, plugin_paths)
 
     grammar = {}
     for path in paths:
