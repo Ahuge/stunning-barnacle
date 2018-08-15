@@ -1,3 +1,5 @@
+import collections
+
 # For tokens
 ONE_OR_MORE = "+"
 OR = "|"
@@ -20,3 +22,11 @@ ID = "ID"
 #       Separated with os.pathsep.
 #       Full paths are expected.
 GRAMMAR_PLUGIN_ENV_KEY = "STUNNING_BNF_GRAMMAR_FILES"
+
+
+# INTERNAL FLAGS
+_ANIMATED_VALUE = "__animated__"
+_MULTI_VALUE = "__multi__"
+
+
+lexToken = collections.namedtuple("LexToken", ["name", "value", "tag", "position"])

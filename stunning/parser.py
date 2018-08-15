@@ -3,9 +3,10 @@ import traceback
 
 from stunning import lexer
 from stunning import constants
+from stunning import objects
 from stunning.exceptions import ParsingError
 from stunning.token import Token
-from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject, MultiValueKnobObject
+from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
 from stunning.grammar import build_grammar
 
 _PROCESSED = ""
@@ -13,7 +14,10 @@ _PROCESSED = ""
 
 class NodeToken(Token):
     def resolve(self, tokstream):
+        import time
+        s = time.time()
         result = super(NodeToken, self).resolve(tokstream)
+        e = time.time()-s
         name_tok = self.result.pop(0)
         _ = self.result.pop(0)
         knobs_list = self.result.pop(0)
@@ -46,20 +50,55 @@ class KnobToken(Token):
         result = super(KnobToken, self).resolve(tokstream)
         key = self._get_tok(result.pop(0))
         value = self._get_tok(result.pop(0))
-        if isinstance(value, list):
-            values = []
-            for v in value[1]:
-                tok = self._get_tok(v)
-                tok = self._cast(tok)
-                values.append(tok.value)
-            return MultiValueKnobObject(name=key.value, values=values)
+        # if isinstance(value, list):
+        #     values = []
+        #     for v in value[1]:
+        #         tok = self._get_tok(v)
+        #         tok = self._cast(tok)
+        #         values.append(tok.value)
+        #     return MultiValueKnobObject(name=key.value, values=values)
 
-        value = self._cast(value)
-        return KnobObject(name=key.value, value=value.value)
+        if isinstance(value, constants.lexToken):
+            value = self._cast(value).value
+        return KnobObject(name=key.value, value=value)
+
+
+class ValueToken(Token):
+    def resolve(self, tokstream):
+        result = super(ValueToken, self).resolve(tokstream)
+        result = self._get_tok(result)
+        if result[0] == constants._ANIMATED_VALUE:
+            return objects.KeyFrameCollection(result[1])
+        elif result[0] == constants._MULTI_VALUE:
+            values = []
+            _values = result[1][1]
+            for value in _values:
+                value = self._get_tok(value)
+                value = self._cast(value)
+                values.append(value.value)
+            return objects.MultiValue(values=values)
+        return result
+
+
+class MultiValueToken(Token):
+    def resolve(self, tokstream):
+        result = super(MultiValueToken, self).resolve(tokstream)
+        result = self._get_tok(result)
+        return constants._MULTI_VALUE, result
+
+
+class AnimatedValueToken(Token):
+    def resolve(self, tokstream):
+        result = super(AnimatedValueToken, self).resolve(tokstream)
+        result = self._get_tok(result)
+        return constants._ANIMATED_VALUE, result[3]
 
 
 Token._TokenClasses["node"] = NodeToken
 Token._TokenClasses["knob"] = KnobToken
+Token._TokenClasses["value"] = ValueToken
+Token._TokenClasses["animated_value"] = AnimatedValueToken
+Token._TokenClasses["multi_value"] = MultiValueToken
 
 
 def parse(text):
@@ -80,11 +119,23 @@ def parse(text):
             "This is probably due to a syntax error in the text.\n"
             "Resulting token stream contained %s..." % tokens[:3]
         )
-    return Token._get_tok(results)
+    results = Token._get_tok(results)
+    if not isinstance(results, (list,tuple)):
+        return results,
+    return results
 
 
 if __name__ == "__main__":
-    t = """ColorCorrect {
+
+    t = """Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
  name ColorCorrect1
  selected true
  xpos -150
@@ -99,19 +150,1908 @@ Blur {
 }
 push $N2f02ecd0
 Grade {
+ white {1 0.808261 0.460907 1}
  white_panelDropped true
  black_clamp false
  name Grade1
  selected true
  xpos -150
  ypos -513
-}"""
-    try:
-        parse(t)
-    finally:
-        print("")
-        print("")
-        print("Processed the following text: %s" %_PROCESSED)
-        print("")
-        print("")
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+ColorCorrect {
+ name ColorCorrect1
+ selected true
+ xpos -150
+ ypos -609
+}
+set N2f02ecd0 [stack 0]
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
+push $N2f02ecd0
+Grade {
+ white {1 0.808261 0.460907 1}
+ white_panelDropped true
+ black_clamp false
+ name Grade1
+ selected true
+ xpos -150
+ ypos -513
+}
+"""
 
+    parse(t)

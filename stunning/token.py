@@ -41,13 +41,14 @@ class Token(object):
             _t = klass(name, values)
         return _t
 
-    def _cast(self, lex_token):
+    @classmethod
+    def _cast(cls, lex_token):
         if lex_token.name == "FLOAT":
             value = float(lex_token.value)
         elif lex_token.name == "INT":
             value = int(lex_token.value)
-        elif lex_token.name == "WORD" and lex_token.value in self.BOOLS:
-            if lex_token.value in self.TBOOLS:
+        elif lex_token.name == "WORD" and lex_token.value in cls.BOOLS:
+            if lex_token.value in cls.TBOOLS:
                 value = True
             else:
                 value = False
@@ -73,7 +74,9 @@ class Token(object):
 
     def resolve(self, tokstream):
         for each_option in self.values:
-            Token.exc_stack.clear()
+            # Token.exc_stack.clear()   $$ Not in py2.7 :(
+            while Token.exc_stack:
+                Token.exc_stack.pop()
 
             with self.rewindable(tokstream) as rewound:
                 result = self._resolve(tokstream, each_option)
@@ -153,10 +156,10 @@ class Token(object):
             tok_name, tok_text, tok_type, tok_pos = tokstream[0]
             if re.match(regex_value, tok_text):
                 t = tokstream.pop(0)
-                global _PROCESSED
-                _PROCESSED += " "
-                _PROCESSED += t[1]
-                sys.stdout.write(" %s" % t.value)
+                #global _PROCESSED
+                #_PROCESSED += " "
+                #_PROCESSED += t[1]
+                #sys.stdout.write(" %s" % t.value)
                 return t
         if rewound:
             raise ParsingError("Parsing Error!\nExpected %s got %s" % (regex_value, tokstream[0][:-1]))
@@ -164,6 +167,7 @@ class Token(object):
 
 class LiteralToken(Token):
     def __init__(self, value):
+        value = value.strip("\'").strip("\"")
         super(LiteralToken, self).__init__(name="LiteralToken", values=[value])
 
 
