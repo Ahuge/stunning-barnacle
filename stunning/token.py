@@ -87,7 +87,7 @@ class Token(object):
                 continue
         raise ResolvingError(
             "Could not resolve %s token.\nToken stream contained: %s"
-            % (self.name, tokstream)
+            % (self.name, tokstream[:3])
         )
 
     def _resolve_list(self, tokstream, list_value):
