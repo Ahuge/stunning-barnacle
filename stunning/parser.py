@@ -14,10 +14,7 @@ _PROCESSED = ""
 
 class NodeToken(Token):
     def resolve(self, tokstream):
-        import time
-        s = time.time()
         result = super(NodeToken, self).resolve(tokstream)
-        e = time.time()-s
         name_tok = self.result.pop(0)
         _ = self.result.pop(0)
         knobs_list = self.result.pop(0)
@@ -50,13 +47,6 @@ class KnobToken(Token):
         result = super(KnobToken, self).resolve(tokstream)
         key = self._get_tok(result.pop(0))
         value = self._get_tok(result.pop(0))
-        # if isinstance(value, list):
-        #     values = []
-        #     for v in value[1]:
-        #         tok = self._get_tok(v)
-        #         tok = self._cast(tok)
-        #         values.append(tok.value)
-        #     return MultiValueKnobObject(name=key.value, values=values)
 
         if isinstance(value, constants.lexToken):
             value = self._cast(value).value

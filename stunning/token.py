@@ -20,6 +20,20 @@ class Token(object):
         self.values = values
         self.greedy = False
 
+    def to_re(self):
+        result_list = []
+        for value in self.values:
+            if isinstance(value, str):
+                result_list.append(r"(?:" + value + r")")
+            else:
+                for part in value:
+                    if isinstance(part, Token):
+                        _r = part.to_re()
+                        result_list.append(_r)
+                    else:
+                        result_list.append(part)
+        return r"(?:" + (r"|".join(result_list)) + r")"
+
     @classmethod
     def _get_tok(cls, obj):
         o = obj
@@ -75,13 +89,13 @@ class Token(object):
     def resolve(self, tokstream):
         for each_option in self.values:
             # Token.exc_stack.clear()   $$ Not in py2.7 :(
-            while Token.exc_stack:
-                Token.exc_stack.pop()
 
             with self.rewindable(tokstream) as rewound:
                 result = self._resolve(tokstream, each_option)
                 if result:
                     self.result = result
+                    # while Token.exc_stack:
+                    #     Token.exc_stack.pop()
                     return result
             if rewound:
                 continue
@@ -93,9 +107,14 @@ class Token(object):
     def _resolve_list(self, tokstream, list_value):
         values = []
         for value in list_value:
+            if hasattr(value, "name") and value.name == "toolbox_value":
+                print("Stop Here!")
             result = self._resolve(tokstream, value)
             if not result:
-                return False
+                raise ResolvingError(
+                    "Could not resolve %s token.\nToken stream contained: %s"
+                    % (self.name, tokstream[:3])
+                )
             values.append(result)
         return values
 
@@ -128,6 +147,8 @@ class Token(object):
             while index <= len(backup):
                 stream.insert(0, backup[-index])
                 index += 1
+            import traceback
+            traceback.print_exc()
 
             exc_type, exc_obj, exc_tb = sys.exc_info()
             Token.exc_stack.insert(0, (exc_type, exc_obj, exc_tb))
@@ -165,10 +186,23 @@ class Token(object):
             raise ParsingError("Parsing Error!\nExpected %s got %s" % (regex_value, tokstream[0][:-1]))
 
 
+def _merge_tokens(first, second):
+    f_re = first.to_re()
+    s_re = second.to_re()
+    return RegexToken(values=[f_re + s_re])
+
+
+class RegexToken(Token):
+    def __init__(self, values):
+        super(RegexToken, self).__init__("RegexToken", values)
+
+    def to_re(self):
+        return self.values[0]
+
+
 class LiteralToken(Token):
     def __init__(self, value):
-        value = value.strip("\'").strip("\"")
-        super(LiteralToken, self).__init__(name="LiteralToken", values=[value])
+        super(LiteralToken, self).__init__(name="LiteralToken", values=[value[1:-1]])
 
 
 class OrToken(Token):
@@ -179,3 +213,21 @@ class OrToken(Token):
 class OneOrMoreToken(Token):
     def __init__(self, name):
         super(OneOrMoreToken, self).__init__(name, [None])
+
+
+class OpenGroupToken(Token):
+    def __init__(self, name):
+        super(OpenGroupToken, self).__init__(name, [None])
+
+
+class CloseGroupToken(Token):
+    def __init__(self, name):
+        super(CloseGroupToken, self).__init__(name, [None])
+
+
+class GroupToken(Token):
+    def __init__(self, values):
+        token = values.pop(0)
+        for second_token in values:
+            token = _merge_tokens(token, second_token)
+        super(GroupToken, self).__init__(name="GroupToken", values=[token])

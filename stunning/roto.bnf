@@ -1,7 +1,7 @@
-value::= animated_value|multi_value|single_value|toolbox_value|curves_value
+value::= quoted_value|animated_value|multi_value|single_value|toolbox_value|curves_value
 
 // General Utility
-packed_color::= "x" hex hex hex hex hex hex hex hex
+packed_color::= ( "x" hex hex hex hex hex hex hex hex )
 hex::= INT|"a"|"b"|"c"|"d"|"e"|"f"
 roto_option::= shape_color_red|shape_color_green|shape_color_blue|shape_opacity|shape_blending_mode|shape_source|shape_translate_x|shape_translate_y|shape_rotate|shape_scale_x|shape_scale_y|shape_skew_x|shape_skew_y|shape_skew_order|shape_filter|shape_source_translate_round|shape_lifetime_type|shape_lifetime_start|shape_lifetime_end|shape_ows|shape_osf|shape_spx|shape_spy|shape_sb|shape_tt
 tool_name::= "selectAll"|"selectCurves"|"selectPoints"|"selectFeatherPoints"|"createBezier"|"createBezierCusped"|"createBSpline"|"createEllipse"|"createRectangle"|"createRectangleCusped"|"createOpenSpline"|"addPoints"|"removePoints"|"cuspPoints"|"curvePoints"|"removeFeather"|"closeCurve"|"brush"|"eraser"|"clone"|"reveal"|"dodge"|"burn"|"blur"|"sharpen"|"smear"
@@ -26,7 +26,7 @@ shape_lifetime_type::= "ltt" INT
 shape_lifetime_start::= "ltn" packed_color|FLOAT|INT
 shape_lifetime_end::= "ltm" packed_color|FLOAT|INT
 // Figure out what drives these keys!!
-shape_ows::= "ows" packed_color
+shape_ows::= "osw" packed_color
 shape_osf::= "osf" FLOAT|INT
 shape_spx::= "spx" packed_color
 shape_spy::= "spy" packed_color
@@ -50,18 +50,23 @@ layer_group::= OPEN_BRACE "layer" WORD f_group t_group a_group curve_group+ CLOS
 layer_group::= OPEN_BRACE "layer" WORD f_group t_group a_group CLOSE_BRACE
 a_group::= OPEN_BRACE "a" pnt_xy+ ptex_xy+ ptoffset_xy+ pt_err pt_refset pt_mot pt_ref CLOSE_BRACE
 
-pnt_xy::= "pt" INT "x" FLOAT|INT "pt" INT "y" FLOAT|INT
-ptex_xy::= "ptex" INT INT FLOAT|INT
-ptoffset_xy::= "ptof" INT "x" FLOAT|INT "ptof" INT "y" FLOAT|INT
+pnt_xy::= ( "pt" INT "x" ) FLOAT|INT ( "pt" INT "y" ) FLOAT|INT
+ptex_xy::= ( "ptex" INT INT ) FLOAT|INT
+ptoffset_xy::= ( "ptof" INT "x" ) FLOAT|INT ( "ptof" INT "y" ) FLOAT|INT
 pt_err::= "pterr" FLOAT|INT
 pt_refset::= "ptrefset" FLOAT|INT
 pt_mot::= "ptmot" packed_color
 pt_ref::= "ptref" FLOAT|INT
 
-
 curve_type::= "bezier"
-px_group::= OPEN_BRACE "px" packed_color
+packed_color_int_value::= packed_color|INT
+packed_color_group::= packed_color_int_value
+packed_color_group::= OPEN_BRACE packed_color_int_value+ CLOSE_BRACE
+cc_curve_packet_group::= OPEN_BRACE packed_color_group packed_color_group CLOSE_BRACE
+cc_curve_packet::= cc_curve_packet_group cc_curve_packet_group cc_curve_packet_group
+
+px_group::= OPEN_BRACE "px" packed_color_group cc_curve_packet+ CLOSE_BRACE
 cc_group::= OPEN_BRACE OPEN_BRACE "cc" f_group px_group CLOSE_BRACE "idem" CLOSE_BRACE
-tx_group::=
-shape_a_group::=
+tx_group::= OPEN_BRACE "tx" packed_color+ CLOSE_BRACE
+shape_a_group::= OPEN_BRACE "a" roto_option+
 curve_group::= OPEN_BRACE "curvegroup" WORD INT curve_type cc_group tx_group shape_a_group

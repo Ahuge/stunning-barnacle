@@ -1,30 +1,40 @@
 import os
 
 from stunning.lexer import TOKEN_NAMES
-from stunning.token import Token, OrToken, OneOrMoreToken, LiteralToken
-from stunning.constants import ONE_OR_MORE, OR, GRAMMAR_PLUGIN_ENV_KEY
+from stunning.token import Token, OrToken, OneOrMoreToken, LiteralToken, OpenGroupToken, CloseGroupToken, GroupToken
+from stunning.constants import ONE_OR_MORE, OR, GRAMMAR_PLUGIN_ENV_KEY, OPEN_GROUP, CLOSE_GROUP
 
 
 def _merge_complex_tokens(tokens):
     output_tokens = []
     tokens_copy = tokens[:]
-    join = False
+    or_join = False
+    group_capture = []
+
     for index, token in enumerate(tokens_copy):
-        if join:
+        if or_join:
             token_or = output_tokens.pop()
             p1 = output_tokens.pop()
-            token_or.values = [p1, token]
+            token_or.values = [[p1], [token]]
             output_tokens.append(token_or)
         elif token.name == OR:
-            join = True
+            or_join = True
             output_tokens.append(token)
             continue
         elif token.name == ONE_OR_MORE:
             token_to_more = output_tokens[-1]
             token_to_more.greedy = True
+        elif token.name == OPEN_GROUP:
+            group_capture.append(token)
+        elif group_capture and token.name != CLOSE_GROUP:
+            group_capture.append(token)
+        elif token.name == CLOSE_GROUP:
+            group_token = GroupToken(values=group_capture[1:])
+            output_tokens.append(group_token)
+            group_capture = []
         else:
             output_tokens.append(token)
-        join = False
+        or_join = False
     return output_tokens
 
 
@@ -46,6 +56,10 @@ def _resolve_grammar(token_names, parts):
                 created_token = OneOrMoreToken(name=part)
             elif part[0] in ["\"", "\'"] and part[-1] in ["\"", "\'"]:
                 created_token = LiteralToken(value=part)
+            elif part == OPEN_GROUP:
+                created_token = OpenGroupToken(name=part)
+            elif part == CLOSE_GROUP:
+                created_token = CloseGroupToken(name=part)
             else:
                 created_token = Token.factory(name=part, values=[TOKEN_NAMES.get(part)])
         created_tokens.append(created_token)

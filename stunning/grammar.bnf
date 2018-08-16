@@ -15,7 +15,7 @@ knoblist::= knob+
 
 knob::= WORD value
 
-value::= animated_value|multi_value|single_value
+value::= quoted_value|animated_value|multi_value|single_value
 
 single_value::= WORD|FLOAT|INT
 
@@ -23,3 +23,6 @@ multi_value::= OPEN_BRACE single_value+ CLOSE_BRACE
 
 animated_value::= OPEN_BRACE OPEN_BRACE "curve" priv_animated_value+ CLOSE_BRACE CLOSE_BRACE
 priv_animated_value::= WORD FLOAT|INT
+
+quoted_value::= """ single_value+ """
+quoted_value::= "'" single_value+ "'"

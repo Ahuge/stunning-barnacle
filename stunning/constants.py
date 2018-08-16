@@ -3,6 +3,8 @@ import collections
 # For tokens
 ONE_OR_MORE = "+"
 OR = "|"
+OPEN_GROUP = "("
+CLOSE_GROUP = ")"
 
 # Reserved is a generic keyword type.
 # Meant to be a builtin for the TCL syntax.
