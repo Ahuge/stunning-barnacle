@@ -24,7 +24,7 @@ ID = "ID"
 #       Separated with os.pathsep.
 #       Full paths are expected.
 GRAMMAR_PLUGIN_ENV_KEY = "STUNNING_BNF_GRAMMAR_FILES"
-
+DEBUG_ENV_KEY = "STUNNING_DEBUG"
 
 # INTERNAL FLAGS
 _ANIMATED_VALUE = "__animated__"

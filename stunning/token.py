@@ -1,10 +1,13 @@
 import contextlib
+import os
 import re
 import sys
 
 from stunning.exceptions import ParsingError, ResolvingError
+from stunning.constants import DEBUG_ENV_KEY
 
 _PROCESSED = ""
+DEBUG = bool(os.environ.get(DEBUG_ENV_KEY, None))
 
 
 class Token(object):
@@ -147,8 +150,9 @@ class Token(object):
             while index <= len(backup):
                 stream.insert(0, backup[-index])
                 index += 1
-            import traceback
-            traceback.print_exc()
+            if DEBUG:
+                import traceback
+                traceback.print_exc()
 
             exc_type, exc_obj, exc_tb = sys.exc_info()
             Token.exc_stack.insert(0, (exc_type, exc_obj, exc_tb))

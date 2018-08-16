@@ -135,7 +135,6 @@ class RotoTestCase(BaseTimingTest):
 
     @timing
     def test_one_shape(self):
-        ss = t2[445:500]
         nodes = parser.parse(t2)
         self.assertEqual(len(nodes), 1)
 

@@ -5,7 +5,7 @@ from stunning import lexer
 from stunning import constants
 from stunning import objects
 from stunning.exceptions import ParsingError
-from stunning.token import Token
+from stunning.token import Token, DEBUG
 from stunning.objects import NodeObject, KnobObject, SetTCLObject, PushTCLObject
 from stunning.grammar import build_grammar
 
@@ -102,8 +102,9 @@ def parse(text):
         result = Token._get_tok(token.resolve(tokens))
         results.append(result)
     if len(tokens):
-        for exc_t, exc_o, exc_tb in Token.exc_stack:
-            traceback.print_exception(exc_t, exc_o, exc_tb)
+        if DEBUG:
+            for exc_t, exc_o, exc_tb in Token.exc_stack:
+                traceback.print_exception(exc_t, exc_o, exc_tb)
         raise ParsingError(
             "The stunning library was unable to consume the entire text passed to it.\n"
             "This is probably due to a syntax error in the text.\n"
