@@ -14,7 +14,7 @@ tcl_push_expr::= TCL_PUSH TCL_VAR WORD
 knoblist::= knob+
 
 knob::= WORD value
-
+number::= FLOAT|INT
 value::= quoted_value|animated_value|multi_value|single_value
 
 single_value::= WORD|FLOAT|INT
@@ -22,7 +22,17 @@ single_value::= WORD|FLOAT|INT
 multi_value::= OPEN_BRACE single_value+ CLOSE_BRACE
 
 animated_value::= OPEN_BRACE OPEN_BRACE "curve" priv_animated_value+ CLOSE_BRACE CLOSE_BRACE
-priv_animated_value::= WORD FLOAT|INT
+priv_animated_value::= WORD number
+priv_animated_value::= WORD number animation_key_options+
+
+animation_key_options::= animation_leftslope|animation_rightslope|animation_leftslopelength|animation_rightslopelength|animation_interpolation|animation_extrapolation
+
+animation_leftslope::= ("s" number)
+animation_rightslope::= ("t" number)
+animation_leftslopelength::= ("u" number)
+animation_rightslopelength::= ("v" number)
+animation_interpolation::= "K"|"L"|"R"|"C"
+animation_extrapolation::= "l"
 
 quoted_value::= """ single_value+ """
 quoted_value::= "'" single_value+ "'"
