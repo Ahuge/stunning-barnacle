@@ -68,5 +68,5 @@ cc_curve_packet::= cc_curve_packet_group cc_curve_packet_group cc_curve_packet_g
 px_group::= OPEN_BRACE "px" packed_color_group cc_curve_packet+ CLOSE_BRACE
 cc_group::= OPEN_BRACE OPEN_BRACE "cc" f_group px_group CLOSE_BRACE "idem" CLOSE_BRACE
 tx_group::= OPEN_BRACE "tx" packed_color+ CLOSE_BRACE
-shape_a_group::= OPEN_BRACE "a" roto_option+
-curve_group::= OPEN_BRACE "curvegroup" WORD INT curve_type cc_group tx_group shape_a_group
+shape_a_group::= OPEN_BRACE "a" roto_option+ CLOSE_BRACE
+curve_group::= OPEN_BRACE "curvegroup" WORD INT curve_type cc_group tx_group shape_a_group CLOSE_BRACE
