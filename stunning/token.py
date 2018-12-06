@@ -110,8 +110,6 @@ class Token(object):
     def _resolve_list(self, tokstream, list_value):
         values = []
         for value in list_value:
-            if hasattr(value, "name") and value.name == "toolbox_value":
-                print("Stop Here!")
             result = self._resolve(tokstream, value)
             if not result:
                 raise ResolvingError(
