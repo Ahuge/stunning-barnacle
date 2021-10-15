@@ -1,0 +1,14 @@
+Grade {
+ white {{curve x1001 1 x1006 2}}
+ black_clamp false
+ name Grade4
+ selected true
+ xpos 6102
+ ypos 2065
+}
+Blur {
+ name Blur1
+ size 66.6
+ xpos -40
+ ypos -614
+}
